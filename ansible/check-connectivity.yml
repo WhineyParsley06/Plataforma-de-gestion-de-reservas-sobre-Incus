@@ -1,0 +1,22 @@
+---
+- name: Verificacion de conectividad entre nodos Incus
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: app-api hacia app-core
+      ansible.builtin.command: >
+        incus exec app-api -- ping -c 4 10.10.0.11
+
+    - name: app-api hacia db-postgres
+      ansible.builtin.command: >
+        incus exec app-api -- ping -c 4 10.10.0.12
+
+    - name: app-api hacia monitoring
+      ansible.builtin.command: >
+        incus exec app-api -- ping -c 4 10.10.0.20
+
+    - name: app-api hacia ceph-node
+      ansible.builtin.command: >
+        incus exec app-api -- ping -c 4 10.10.0.30

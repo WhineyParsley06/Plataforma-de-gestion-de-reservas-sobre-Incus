@@ -1,0 +1,35 @@
+---
+- name: Configuracion base de contenedores Incus
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    containers:
+      - node-control
+      - app-api
+      - app-core
+      - db-postgres
+      - monitoring
+      - ceph-node
+
+  tasks:
+    - name: Actualizar cache apt en cada contenedor
+      ansible.builtin.command: >
+        incus exec {{ item }} -- bash -lc "apt update"
+      loop: "{{ containers }}"
+
+    - name: Instalar herramientas base en cada contenedor
+      ansible.builtin.command: >
+        incus exec {{ item }} -- bash -lc "DEBIAN_FRONTEND=noninteractive apt install -y curl wget nano net-tools iputils-ping ca-certificates gnupg lsb-release"
+      loop: "{{ containers }}"
+
+    - name: Mostrar version de Ubuntu en cada contenedor
+      ansible.builtin.command: >
+        incus exec {{ item }} -- bash -lc "lsb_release -a"
+      loop: "{{ containers }}"
+      register: ubuntu_versions
+
+    - name: Imprimir resultado de versiones
+      ansible.builtin.debug:
+        var: ubuntu_versions.results
