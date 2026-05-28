@@ -1,0 +1,20 @@
+---
+- name: Corregir permisos de PostgreSQL para app-core
+  hosts: database
+  become: true
+
+  vars:
+    db_name: reservas_db
+    db_user: reservas_user
+
+  tasks:
+    - name: Dar permisos al usuario de la aplicacion
+      shell: |
+        sudo -u postgres psql -d {{ db_name }} -c "
+        GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_user }};
+        GRANT USAGE, CREATE ON SCHEMA public TO {{ db_user }};
+        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {{ db_user }};
+        GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {{ db_user }};
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {{ db_user }};
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO {{ db_user }};
+        "

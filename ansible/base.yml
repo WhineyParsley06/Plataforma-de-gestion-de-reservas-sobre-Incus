@@ -1,0 +1,39 @@
+---
+- name: Configuracion base de todos los nodos
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Actualizar cache de paquetes
+      apt:
+        update_cache: yes
+
+    - name: Instalar paquetes base
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - nano
+          - vim
+          - net-tools
+          - iputils-ping
+          - htop
+          - unzip
+          - ca-certificates
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Crear carpeta base del proyecto
+      file:
+        path: /opt/reservas
+        state: directory
+        mode: '0755'
+
+    - name: Crear archivo de identificacion del nodo
+      copy:
+        dest: /opt/reservas/nodo.txt
+        content: |
+          Nodo configurado automaticamente con Ansible.
+          Host: {{ inventory_hostname }}

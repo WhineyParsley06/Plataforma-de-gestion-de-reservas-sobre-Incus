@@ -1,0 +1,89 @@
+---
+- name: Configurar PostgreSQL para la plataforma de reservas
+  hosts: database
+  become: true
+
+  vars:
+    db_name: reservas_db
+    db_user: reservas_user
+    db_password: reservas123
+
+  tasks:
+    - name: Instalar PostgreSQL
+      apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+          - python3-psycopg2
+        state: present
+        update_cache: yes
+
+    - name: Habilitar e iniciar PostgreSQL
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: Permitir conexiones desde otros nodos
+      shell: |
+        CONF_FILE=$(ls /etc/postgresql/*/main/postgresql.conf | head -n 1)
+        sed -i "s/^#listen_addresses =.*/listen_addresses = '*'/" $CONF_FILE
+        sed -i "s/^listen_addresses =.*/listen_addresses = '*'/" $CONF_FILE
+
+    - name: Permitir acceso desde la red 10.10.0.0/24
+      lineinfile:
+        path: /etc/postgresql/16/main/pg_hba.conf
+        line: 'host    all             all             10.10.0.0/24            md5'
+        state: present
+
+    - name: Reiniciar PostgreSQL
+      service:
+        name: postgresql
+        state: restarted
+
+    - name: Crear usuario de base de datos
+      shell: |
+        sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='{{ db_user }}'" | grep -q 1 ||         sudo -u postgres psql -c "CREATE USER {{ db_user }} WITH PASSWORD '{{ db_password }}';"
+
+    - name: Crear base de datos
+      shell: |
+        sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw {{ db_name }} ||         sudo -u postgres createdb -O {{ db_user }} {{ db_name }}
+
+    - name: Crear tablas iniciales
+      shell: |
+        sudo -u postgres psql -d {{ db_name }} -c "
+        CREATE TABLE IF NOT EXISTS usuarios (
+          id SERIAL PRIMARY KEY,
+          nombre VARCHAR(100) NOT NULL,
+          email VARCHAR(120) UNIQUE NOT NULL,
+          creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS recursos (
+          id SERIAL PRIMARY KEY,
+          nombre VARCHAR(100) NOT NULL,
+          tipo VARCHAR(50) NOT NULL,
+          disponible BOOLEAN DEFAULT TRUE
+        );
+
+        CREATE TABLE IF NOT EXISTS reservas (
+          id SERIAL PRIMARY KEY,
+          usuario_id INTEGER REFERENCES usuarios(id),
+          recurso_id INTEGER REFERENCES recursos(id),
+          fecha_reserva TIMESTAMP NOT NULL,
+          estado VARCHAR(30) DEFAULT 'activa',
+          creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        "
+
+    - name: Insertar datos de prueba
+      shell: |
+        sudo -u postgres psql -d {{ db_name }} -c "
+        INSERT INTO recursos (nombre, tipo)
+        SELECT 'Laboratorio de Redes', 'laboratorio'
+        WHERE NOT EXISTS (SELECT 1 FROM recursos WHERE nombre='Laboratorio de Redes');
+
+        INSERT INTO recursos (nombre, tipo)
+        SELECT 'Sala de Sistemas', 'sala'
+        WHERE NOT EXISTS (SELECT 1 FROM recursos WHERE nombre='Sala de Sistemas');
+        "
