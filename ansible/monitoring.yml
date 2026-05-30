@@ -1,0 +1,180 @@
+---
+- name: Configurar Prometheus y Grafana
+  hosts: monitoring
+  become: true
+
+  tasks:
+    - name: Instalar dependencias base
+      apt:
+        name:
+          - prometheus
+          - curl
+          - wget
+          - gnupg
+          - apt-transport-https
+          - software-properties-common
+        state: present
+        update_cache: yes
+
+    - name: Crear carpeta de llaves APT
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Descargar llave GPG de Grafana
+      shell: |
+        curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
+      args:
+        creates: /etc/apt/keyrings/grafana.gpg
+
+    - name: Agregar repositorio de Grafana
+      copy:
+        dest: /etc/apt/sources.list.d/grafana.list
+        content: |
+          deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main
+
+    - name: Instalar Grafana
+      apt:
+        name: grafana
+        state: present
+        update_cache: yes
+
+    - name: Configurar Prometheus
+      copy:
+        dest: /etc/prometheus/prometheus.yml
+        content: |
+          global:
+            scrape_interval: 5s
+
+          scrape_configs:
+            - job_name: "prometheus"
+              static_configs:
+                - targets: ["localhost:9090"]
+
+            - job_name: "app-api"
+              metrics_path: /metrics
+              static_configs:
+                - targets: ["10.10.0.10:8000"]
+
+            - job_name: "app-core"
+              metrics_path: /metrics
+              static_configs:
+                - targets: ["10.10.0.11:8001"]
+
+    - name: Crear datasource de Prometheus en Grafana
+      copy:
+        dest: /etc/grafana/provisioning/datasources/prometheus.yml
+        content: |
+          apiVersion: 1
+
+          datasources:
+            - name: Prometheus
+              uid: prometheus
+              type: prometheus
+              access: proxy
+              url: http://localhost:9090
+              isDefault: true
+              editable: true
+
+    - name: Crear carpeta de dashboards
+      file:
+        path: /var/lib/grafana/dashboards
+        state: directory
+        owner: grafana
+        group: grafana
+        mode: '0755'
+
+    - name: Configurar proveedor de dashboards
+      copy:
+        dest: /etc/grafana/provisioning/dashboards/reservas.yml
+        content: |
+          apiVersion: 1
+
+          providers:
+            - name: "Reservas"
+              orgId: 1
+              folder: "Proyecto Incus"
+              type: file
+              disableDeletion: false
+              editable: true
+              options:
+                path: /var/lib/grafana/dashboards
+
+    - name: Crear dashboard de reservas
+      copy:
+        dest: /var/lib/grafana/dashboards/reservas-dashboard.json
+        owner: grafana
+        group: grafana
+        mode: '0644'
+        content: |
+          {
+            "title": "Plataforma de Reservas sobre Incus",
+            "uid": "reservas-incus",
+            "timezone": "browser",
+            "schemaVersion": 38,
+            "version": 1,
+            "refresh": "5s",
+            "panels": [
+              {
+                "type": "stat",
+                "title": "Estado app-api",
+                "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+                "targets": [
+                  {
+                    "expr": "up{job=\"app-api\"}",
+                    "legendFormat": "app-api"
+                  }
+                ],
+                "datasource": {"type": "prometheus", "uid": "prometheus"}
+              },
+              {
+                "type": "stat",
+                "title": "Estado app-core",
+                "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+                "targets": [
+                  {
+                    "expr": "up{job=\"app-core\"}",
+                    "legendFormat": "app-core"
+                  }
+                ],
+                "datasource": {"type": "prometheus", "uid": "prometheus"}
+              },
+              {
+                "type": "timeseries",
+                "title": "Peticiones app-api",
+                "gridPos": {"x": 0, "y": 5, "w": 12, "h": 8},
+                "targets": [
+                  {
+                    "expr": "rate(app_api_http_requests_total[1m])",
+                    "legendFormat": "HTTP requests"
+                  }
+                ],
+                "datasource": {"type": "prometheus", "uid": "prometheus"}
+              },
+              {
+                "type": "timeseries",
+                "title": "Peticiones app-core",
+                "gridPos": {"x": 12, "y": 5, "w": 12, "h": 8},
+                "targets": [
+                  {
+                    "expr": "rate(app_core_http_requests_total[1m])",
+                    "legendFormat": "HTTP requests"
+                  }
+                ],
+                "datasource": {"type": "prometheus", "uid": "prometheus"}
+              }
+            ]
+          }
+
+    - name: Reiniciar Prometheus
+      systemd:
+        name: prometheus
+        state: restarted
+        enabled: yes
+
+    - name: Reiniciar Grafana
+      systemd:
+        name: grafana-server
+        state: restarted
+        enabled: yes

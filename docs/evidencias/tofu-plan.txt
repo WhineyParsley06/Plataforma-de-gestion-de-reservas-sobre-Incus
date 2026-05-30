@@ -1,0 +1,13 @@
+terraform_data.incus_network: Refreshing state... [id=c4a99ae2-64ed-42b4-bc4d-bfce0801d865]
+terraform_data.incus_profile: Refreshing state... [id=a972d04f-bd3a-2476-3524-905ca8c53fb6]
+terraform_data.incus_containers["app-core"]: Refreshing state... [id=54ebeed3-1400-54ae-d1c4-9bb6e95f81df]
+terraform_data.incus_containers["monitoring"]: Refreshing state... [id=e797ea43-b495-e9e0-d17b-628f9e7d0c1d]
+terraform_data.incus_containers["ceph-node"]: Refreshing state... [id=21fbd73b-bc53-a883-4853-afd4120392b8]
+terraform_data.incus_containers["db-postgres"]: Refreshing state... [id=58b036d6-2b58-e999-4c7b-c5fdcc08094e]
+terraform_data.incus_containers["app-api"]: Refreshing state... [id=187f11ca-bd2d-27d4-6646-32a750ac7093]
+terraform_data.incus_containers["node-control"]: Refreshing state... [id=40493159-21a5-39e9-de26-e4599d2d4306]
+
+No changes. Your infrastructure matches the configuration.
+
+OpenTofu has compared your real infrastructure against your configuration and
+found no differences, so no changes are needed.

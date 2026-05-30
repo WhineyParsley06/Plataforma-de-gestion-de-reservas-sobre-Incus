@@ -1,12 +1,37 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import requests
 import os
+import time
 
 app = FastAPI(title="app-api - Plataforma de Reservas")
 
-CORE_URL = os.getenv("CORE_URL", "http://10.10.0.11:8001")
+APP_API_REQUESTS = {}
+
+@app.middleware("http")
+async def app_api_metrics_middleware(request: Request, call_next):
+    response = await call_next(request)
+    key = (request.method, request.url.path, str(response.status_code))
+    APP_API_REQUESTS[key] = APP_API_REQUESTS.get(key, 0) + 1
+    return response
+
+@app.get("/metrics")
+def metrics():
+    lines = [
+        "# HELP app_api_http_requests_total Total de peticiones HTTP recibidas por app-api",
+        "# TYPE app_api_http_requests_total counter"
+    ]
+
+    for (method, endpoint, status), count in APP_API_REQUESTS.items():
+        lines.append(
+            f'app_api_http_requests_total{{method="{method}",endpoint="{endpoint}",status="{status}"}} {count}'
+        )
+
+    return Response("\n".join(lines) + "\n", media_type="text/plain")
+
+
+CORE_URL = os.getenv("CORE_URL", "http://10.20.0.11:8001")
 
 
 class ReservaRequest(BaseModel):
@@ -55,6 +80,19 @@ def api_crear_reserva(data: ReservaRequest):
             json=data.dict(),
             timeout=5
         )
+
+        if r.status_code >= 400:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+
+        return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/reservas/{reserva_id}")
+def api_eliminar_reserva(reserva_id: int):
+    try:
+        r = requests.delete(f"{CORE_URL}/reservas/{reserva_id}", timeout=5)
 
         if r.status_code >= 400:
             raise HTTPException(status_code=r.status_code, detail=r.text)
@@ -156,6 +194,18 @@ def index():
 
     button:hover {
       background: #1d4ed8;
+    }
+
+    .btn-delete {
+      margin-top: 10px;
+      width: auto;
+      padding: 8px 12px;
+      background: #dc2626;
+      font-size: 13px;
+    }
+
+    .btn-delete:hover {
+      background: #b91c1c;
     }
 
     .item {
@@ -332,7 +382,8 @@ def index():
               Usuario: ${r.usuario}<br>
               Correo: ${r.email}<br>
               Fecha: ${r.fecha_reserva}<br>
-              Estado: <span class="badge">${r.estado}</span>
+              Estado: <span class="badge">${r.estado}</span><br>
+              <button class="btn-delete" onclick="eliminarReserva(${r.id})">Eliminar reserva</button>
             </div>
           `;
         });
@@ -386,6 +437,31 @@ def index():
         mensaje.style.display = "block";
         mensaje.className = "msg error";
         mensaje.innerText = "Error al crear la reserva: " + e.message;
+      }
+    }
+
+    async function eliminarReserva(id) {
+      const confirmar = confirm("¿Seguro que deseas eliminar esta reserva?");
+
+      if (!confirmar) {
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/reservas/" + id, {
+          method: "DELETE"
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+          throw new Error(result.detail || "No se pudo eliminar la reserva.");
+        }
+
+        await cargarReservas();
+        alert("Reserva eliminada correctamente.");
+      } catch (e) {
+        alert("Error al eliminar la reserva: " + e.message);
       }
     }
 

@@ -1,0 +1,6 @@
+Inferring fsid cc3d353b-5c5e-11f1-8b44-10666a5afce9
+Inferring config /var/lib/ceph/cc3d353b-5c5e-11f1-8b44-10666a5afce9/mon.ceph-node/config
+Using ceph image with id 'aade1b12b8e6' and tag 'v19' created on 2025-07-17 19:53:27 +0000 UTC
+quay.io/ceph/ceph@sha256:af0c5903e901e329adabe219dfc8d0c3efc1f05102a753902f33ee16c26b6cee
+ID  CLASS  WEIGHT  TYPE NAME     STATUS  REWEIGHT  PRI-AFF
+-1              0  root default                           

@@ -1,0 +1,8 @@
+terraform_data.incus_containers["app-api"]
+terraform_data.incus_containers["app-core"]
+terraform_data.incus_containers["ceph-node"]
+terraform_data.incus_containers["db-postgres"]
+terraform_data.incus_containers["monitoring"]
+terraform_data.incus_containers["node-control"]
+terraform_data.incus_network
+terraform_data.incus_profile

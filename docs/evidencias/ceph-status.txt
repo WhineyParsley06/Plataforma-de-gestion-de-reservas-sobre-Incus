@@ -1,0 +1,21 @@
+Inferring fsid cc3d353b-5c5e-11f1-8b44-10666a5afce9
+Inferring config /var/lib/ceph/cc3d353b-5c5e-11f1-8b44-10666a5afce9/mon.ceph-node/config
+Using ceph image with id 'aade1b12b8e6' and tag 'v19' created on 2025-07-17 19:53:27 +0000 UTC
+quay.io/ceph/ceph@sha256:af0c5903e901e329adabe219dfc8d0c3efc1f05102a753902f33ee16c26b6cee
+  cluster:
+    id:     cc3d353b-5c5e-11f1-8b44-10666a5afce9
+    health: HEALTH_WARN
+            mon ceph-node is low on available space
+            OSD count 0 < osd_pool_default_size 3
+ 
+  services:
+    mon: 1 daemons, quorum ceph-node (age 30m)
+    mgr: ceph-node.tkxosd(active, since 30m)
+    osd: 0 osds: 0 up, 0 in
+ 
+  data:
+    pools:   0 pools, 0 pgs
+    objects: 0 objects, 0 B
+    usage:   0 B used, 0 B / 0 B avail
+    pgs:     
+ 

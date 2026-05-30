@@ -1,0 +1,20 @@
+monitoring | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+ceph-node | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+db-postgres | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+app-core | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+app-api | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
